@@ -7,7 +7,7 @@
 
 import SwiftUI
 import CodeEditSourceEditor
-import CodeEditLanguages
+import InbyLanguages
 
 struct StatusBar: View {
     let fileURL: URL?

@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import CodeEditLanguages
+import InbyLanguages
 import SwiftTreeSitter
 import TreeSitter
 

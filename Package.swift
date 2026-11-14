@@ -19,15 +19,10 @@ let package = Package(
             url: "https://github.com/CodeEditApp/CodeEditTextView.git",
             from: "0.12.1"
         ),
-        // tree-sitter languages
+        // Source-built grammars and attributed highlight queries
         .package(
-            url: "https://github.com/CodeEditApp/CodeEditLanguages.git",
-            exact: "0.1.20"
-        ),
-        // CodeEditSymbols
-        .package(
-            url: "https://github.com/CodeEditApp/CodeEditSymbols.git",
-            exact: "0.2.3"
+            url: "https://github.com/Maatskappy/InbyLanguages.git",
+            exact: "0.1.0"
         ),
         // SwiftLint
         .package(
@@ -47,9 +42,8 @@ let package = Package(
             name: "CodeEditSourceEditor",
             dependencies: [
                 "CodeEditTextView",
-                "CodeEditLanguages",
-                "TextFormation",
-                "CodeEditSymbols"
+                "InbyLanguages",
+                "TextFormation"
             ],
             plugins: [
                 .plugin(name: "SwiftLint", package: "SwiftLintPlugin")
@@ -61,7 +55,7 @@ let package = Package(
             name: "CodeEditSourceEditorTests",
             dependencies: [
                 "CodeEditSourceEditor",
-                "CodeEditLanguages",
+                "InbyLanguages",
                 .product(name: "CustomDump", package: "swift-custom-dump")
             ],
             plugins: [

@@ -9,7 +9,7 @@ import Foundation
 import TextFormation
 import TextStory
 import CodeEditTextView
-import CodeEditLanguages
+import InbyLanguages
 import SwiftTreeSitter
 
 struct TagFilter: Filter {

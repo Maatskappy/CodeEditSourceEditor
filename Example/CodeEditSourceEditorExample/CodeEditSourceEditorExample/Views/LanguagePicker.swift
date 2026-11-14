@@ -6,7 +6,7 @@
 //
 
 import SwiftUI
-import CodeEditLanguages
+import InbyLanguages
 
 struct LanguagePicker: View {
     @Binding var language: CodeLanguage

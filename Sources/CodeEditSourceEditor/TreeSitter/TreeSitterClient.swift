@@ -7,7 +7,7 @@
 
 import Foundation
 import CodeEditTextView
-import CodeEditLanguages
+import InbyLanguages
 import SwiftTreeSitter
 import OSLog
 

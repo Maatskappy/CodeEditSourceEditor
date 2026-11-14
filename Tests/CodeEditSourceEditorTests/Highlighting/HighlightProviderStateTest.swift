@@ -1,6 +1,6 @@
 import XCTest
 import CodeEditTextView
-import CodeEditLanguages
+import InbyLanguages
 @testable import CodeEditSourceEditor
 
 /// Because the provider state is mostly just passing messages between providers and the highlight state, what we need
