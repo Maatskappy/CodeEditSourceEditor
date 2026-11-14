@@ -22,7 +22,7 @@ let package = Package(
         // Source-built grammars and attributed highlight queries
         .package(
             url: "https://github.com/Maatskappy/InbyLanguages.git",
-            exact: "0.1.0"
+            exact: "0.1.1"
         ),
         // SwiftLint
         .package(

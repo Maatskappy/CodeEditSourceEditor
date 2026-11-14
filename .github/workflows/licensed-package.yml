@@ -1,0 +1,21 @@
+name: Licensed package consumers
+on:
+  pull_request:
+    branches: [inby-patches]
+  push:
+    branches: [inby-patches]
+permissions:
+  contents: read
+jobs:
+  test-and-example:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - run: swift test
+      - run: >-
+          xcodebuild build
+          -project Example/CodeEditSourceEditorExample/CodeEditSourceEditorExample.xcodeproj
+          -scheme CodeEditSourceEditorExample
+          -destination 'platform=macOS'
+          -skipPackagePluginValidation
+          CODE_SIGNING_ALLOWED=NO ENABLE_USER_SCRIPT_SANDBOXING=NO
