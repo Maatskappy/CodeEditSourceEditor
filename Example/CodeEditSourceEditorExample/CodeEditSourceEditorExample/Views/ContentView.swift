@@ -7,7 +7,7 @@
 
 import SwiftUI
 import CodeEditSourceEditor
-import CodeEditLanguages
+import InbyLanguages
 import CodeEditTextView
 
 struct ContentView: View {

@@ -5,7 +5,7 @@
 //  Created by Khan Winter on 5/25/24.
 //
 
-import CodeEditLanguages
+import InbyLanguages
 
 extension TreeSitterLanguage {
     fileprivate static let relevantLanguages: Set<String> = [

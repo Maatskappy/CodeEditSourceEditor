@@ -1,6 +1,6 @@
 import XCTest
 import CodeEditTextView
-import CodeEditLanguages
+import InbyLanguages
 @testable import CodeEditSourceEditor
 
 final class HighlighterTests: XCTestCase {

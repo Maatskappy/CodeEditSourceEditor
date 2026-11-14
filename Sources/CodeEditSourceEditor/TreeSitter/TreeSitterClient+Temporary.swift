@@ -7,7 +7,7 @@
 
 import AppKit
 import SwiftTreeSitter
-import CodeEditLanguages
+import InbyLanguages
 
 extension TreeSitterClient {
     static func quickHighlight(

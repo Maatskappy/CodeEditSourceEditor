@@ -7,7 +7,7 @@
 
 import Foundation
 import SwiftTreeSitter
-import CodeEditLanguages
+import InbyLanguages
 
 extension TreeSitterClient {
     func queryHighlightsForRange(range: NSRange) -> [HighlightRange] {

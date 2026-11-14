@@ -7,7 +7,7 @@
 
 import AppKit
 import CodeEditTextView
-import CodeEditLanguages
+import InbyLanguages
 import SwiftUI
 import Combine
 import TextFormation

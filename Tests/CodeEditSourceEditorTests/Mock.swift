@@ -1,7 +1,7 @@
 import Foundation
 import AppKit
 import CodeEditTextView
-import CodeEditLanguages
+import InbyLanguages
 @testable import CodeEditSourceEditor
 
 class MockHighlightProvider: HighlightProviding {
