@@ -14,8 +14,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/Maatskappy/InbyLanguages.git",
       "state" : {
-        "revision" : "fceea2ff4948d1b9a100d9fc445d4307e00bdbe4",
-        "version" : "0.1.1"
+        "revision" : "77e454340c050eaa3b61d77012a5849ff04dbb09",
+        "version" : "0.1.2"
       }
     },
     {

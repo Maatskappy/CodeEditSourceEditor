@@ -81,14 +81,15 @@ public struct EditorTheme: Equatable {
     /// Maps a capture type to the attributes for that capture determined by the theme.
     /// - Parameter capture: The capture to map to.
     /// - Returns: Theme attributes for the capture.
-    private func mapCapture(_ capture: CaptureName?) -> Attribute {
+    private func mapCapture(_ capture: CaptureName?) -> Attribute { // swiftlint:disable:this cyclomatic_complexity
         switch capture {
         case .include, .constructor, .keyword, .boolean, .variableBuiltin,
                 .keywordReturn, .keywordFunction, .repeat, .conditional, .tag:
             return keywords
         case .comment: return comments
         case .variable, .property: return variables
-        case .function, .method: return variables
+        case .function, .method: return commands
+        case .constant, .constantBuiltin: return values
         case .number, .float: return numbers
         case .string: return strings
         case .type: return types

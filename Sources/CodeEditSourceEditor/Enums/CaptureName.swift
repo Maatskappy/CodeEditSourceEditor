@@ -33,6 +33,8 @@ public enum CaptureName: Int8, CaseIterable, Sendable {
     case variableBuiltin
     case keywordReturn
     case keywordFunction
+    case constant
+    case constantBuiltin
 
     var alternate: CaptureName {
         switch self {
@@ -43,11 +45,12 @@ public enum CaptureName: Int8, CaseIterable, Sendable {
         }
     }
 
+    // swiftlint:disable cyclomatic_complexity function_body_length
     /// Returns a specific capture name case from a given string.
     /// - Note: See ``CaptureName`` docs for why this enum isn't a raw representable.
     /// - Parameter string: A string to get the capture name from
     /// - Returns: A `CaptureNames` case
-    public static func fromString(_ string: String?) -> CaptureName? { // swiftlint:disable:this cyclomatic_complexity
+    public static func fromString(_ string: String?) -> CaptureName? {
         guard let string else { return nil }
         switch string {
         case "include":
@@ -92,10 +95,15 @@ public enum CaptureName: Int8, CaseIterable, Sendable {
             return .keywordReturn
         case "keyword.function":
             return .keywordFunction
+        case "constant":
+            return .constant
+        case "constant.builtin":
+            return .constantBuiltin
         default:
             return nil
         }
     }
+    // swiftlint:enable cyclomatic_complexity function_body_length
 
     /// See ``CaptureName`` docs for why this enum isn't a raw representable.
     var stringValue: String {
@@ -142,6 +150,10 @@ public enum CaptureName: Int8, CaseIterable, Sendable {
             return "keywordReturn"
         case .keywordFunction:
             return "keywordFunction"
+        case .constant:
+            return "constant"
+        case .constantBuiltin:
+            return "constantBuiltin"
         }
     }
 }

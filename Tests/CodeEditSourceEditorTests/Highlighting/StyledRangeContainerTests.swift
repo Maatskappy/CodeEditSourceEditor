@@ -122,4 +122,82 @@ final class StyledRangeContainerTests: XCTestCase {
         XCTAssertEqual(runs[9], Run(length: 5, value: .init(capture: .string, modifiers: [.modification])))
         XCTAssertEqual(runs[10], Run(length: 90, value: nil))
     }
+
+    // MARK: Nested captures
+
+    @MainActor
+    func test_nestedCaptureSplitsEnclosingRun() {
+        let store = StyledRangeContainer(documentLength: 6, providers: [0])
+        store.applyHighlightResult(
+            provider: 0,
+            highlights: [
+                HighlightRange(range: NSRange(location: 0, length: 6), capture: .string),
+                HighlightRange(range: NSRange(location: 1, length: 4), capture: .variable)
+            ],
+            rangeToHighlight: NSRange(location: 0, length: 6)
+        )
+
+        XCTAssertEqual(
+            store._storage[0]!.store.runs(in: 0..<6),
+            [
+                Run(length: 1, value: .init(capture: .string, modifiers: [])),
+                Run(length: 4, value: .init(capture: .variable, modifiers: [])),
+                Run(length: 1, value: .init(capture: .string, modifiers: []))
+            ]
+        )
+    }
+
+    @MainActor
+    func test_deeplyNestedCapturesInnermostWins() {
+        // "$(git rev-parse HEAD)" style: string 0..<20 ⊃ command 2..<15 ⊃ function 2..<5, plus a later variable.
+        let store = StyledRangeContainer(documentLength: 30, providers: [0])
+        store.applyHighlightResult(
+            provider: 0,
+            highlights: [
+                HighlightRange(range: NSRange(location: 0, length: 20), capture: .string),
+                HighlightRange(range: NSRange(location: 2, length: 13), capture: .keyword),
+                HighlightRange(range: NSRange(location: 2, length: 3), capture: .function),
+                HighlightRange(range: NSRange(location: 16, length: 2), capture: .variable),
+                HighlightRange(range: NSRange(location: 22, length: 4), capture: .number)
+            ],
+            rangeToHighlight: NSRange(location: 0, length: 30)
+        )
+
+        XCTAssertEqual(
+            store._storage[0]!.store.runs(in: 0..<30).map { Run(length: $0.length, value: $0.value) },
+            [
+                Run(length: 2, value: .init(capture: .string, modifiers: [])),
+                Run(length: 3, value: .init(capture: .function, modifiers: [])),
+                Run(length: 10, value: .init(capture: .keyword, modifiers: [])),
+                Run(length: 1, value: .init(capture: .string, modifiers: [])),
+                Run(length: 2, value: .init(capture: .variable, modifiers: [])),
+                Run(length: 2, value: .init(capture: .string, modifiers: [])),
+                Run(length: 2, value: nil),
+                Run(length: 4, value: .init(capture: .number, modifiers: [])),
+                Run(length: 4, value: nil)
+            ]
+        )
+    }
+
+    @MainActor
+    func test_sameRangeTieKeepsFirstAndPartialOverlapIsSkipped() {
+        let store = StyledRangeContainer(documentLength: 10, providers: [0])
+        store.applyHighlightResult(
+            provider: 0,
+            highlights: [
+                HighlightRange(range: NSRange(location: 0, length: 4), capture: .keyword),
+                HighlightRange(range: NSRange(location: 0, length: 4), capture: .variable),
+                HighlightRange(range: NSRange(location: 2, length: 4), capture: .string)
+            ],
+            rangeToHighlight: NSRange(location: 0, length: 10)
+        )
+
+        XCTAssertEqual(
+            store._storage[0]!.store.runs(in: 0..<10).map { Run(length: $0.length, value: $0.value) },
+            [
+                Run(length: 4, value: .init(capture: .keyword, modifiers: [])),
+                Run(length: 6, value: nil)
+            ]
+        )
+    }
 }

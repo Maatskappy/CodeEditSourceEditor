@@ -146,6 +146,24 @@ public class TextViewController: NSViewController {
     /// If true, uses the system cursor on macOS 14 or greater.
     public var useSystemCursor: Bool { configuration.appearance.useSystemCursor }
 
+    /// The font for gutter line numbers. `nil` derives a ruler font from ``font``.
+    public var gutterFont: NSFont? { configuration.appearance.gutterFont }
+
+    /// The colour of gutter line numbers. `nil` uses the theme's text colour at 35% opacity.
+    public var gutterTextColor: NSColor? { configuration.appearance.gutterTextColor }
+
+    /// The colour of the line number on lines containing a cursor. `nil` uses the theme's text colour when editable,
+    /// no emphasis when read-only.
+    public var gutterSelectedLineTextColor: NSColor? { configuration.appearance.gutterSelectedLineTextColor }
+
+    /// Whether the gutter fills the background of lines containing a cursor.
+    public var gutterHighlightsSelectedLineBackground: Bool {
+        configuration.appearance.gutterHighlightsSelectedLineBackground
+    }
+
+    /// The minimum number of digits the gutter reserves width for. `nil` reserves 3.
+    public var gutterMinimumDigits: Int? { configuration.appearance.gutterMinimumDigits }
+
     /// Toggle the visibility of the gutter view in the editor.
     public var showGutter: Bool { configuration.peripherals.showGutter }
 

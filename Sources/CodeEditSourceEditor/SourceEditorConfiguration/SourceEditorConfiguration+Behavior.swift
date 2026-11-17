@@ -37,11 +37,7 @@ extension SourceEditorConfiguration {
             if oldConfig?.isEditable != isEditable {
                 controller.textView.isEditable = isEditable
                 controller.textView.selectionManager.highlightSelectedLine = isEditable
-                controller.gutterView.highlightSelectedLines = isEditable
-                if !isEditable {
-                    controller.gutterView.selectedLineTextColor = nil
-                    controller.gutterView.selectedLineColor = .clear
-                }
+                controller.styleGutterView()
             }
 
             if oldConfig?.isSelectable != isSelectable {

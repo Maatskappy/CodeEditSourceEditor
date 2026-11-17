@@ -39,6 +39,24 @@ extension SourceEditorConfiguration {
         /// See ``BracketPairEmphasis`` for more information. Defaults to `.flash`.
         public var bracketPairEmphasis: BracketPairEmphasis? = .flash
 
+        /// The font for gutter line numbers. `nil` derives a ruler font from ``font``.
+        public var gutterFont: NSFont?
+
+        /// The colour of gutter line numbers. `nil` uses the theme's text colour at 35% opacity.
+        public var gutterTextColor: NSColor?
+
+        /// The colour of the line number on lines containing a cursor. `nil` uses the theme's text colour when the
+        /// editor is editable, and ``gutterTextColor`` (no emphasis) when it is read-only.
+        public var gutterSelectedLineTextColor: NSColor?
+
+        /// Whether the gutter fills the background of lines containing a cursor. When `false`, no fill is drawn but the
+        /// line number still uses ``gutterSelectedLineTextColor``. The fill is never drawn in a read-only editor.
+        public var gutterHighlightsSelectedLineBackground: Bool = true
+
+        /// The minimum number of digits the gutter reserves width for, so the column doesn't widen as the line count
+        /// crosses 99, 999, etc. `nil` reserves 3 digits.
+        public var gutterMinimumDigits: Int?
+
         /// Create a new appearance configuration object.
         /// - Parameters:
         ///   - theme: The theme for syntax highlighting.
@@ -53,6 +71,13 @@ extension SourceEditorConfiguration {
         ///   - tabWidth: The visual tab width in number of spaces.
         ///   - bracketPairEmphasis: The type of highlight to use to highlight bracket pairs. See
         ///                          ``BracketPairEmphasis`` for more information. Defaults to `.flash`.
+        ///   - gutterFont: The font for gutter line numbers. `nil` derives a ruler font from `font`.
+        ///   - gutterTextColor: The colour of gutter line numbers. `nil` uses the theme's text colour at 35% opacity.
+        ///   - gutterSelectedLineTextColor: The colour of the line number on lines containing a cursor. `nil` uses the
+        ///                                  theme's text colour when editable, no emphasis when read-only.
+        ///   - gutterHighlightsSelectedLineBackground: Whether the gutter fills the background of lines containing a
+        ///                                             cursor. Defaults to `true`.
+        ///   - gutterMinimumDigits: The minimum number of digits the gutter reserves width for. `nil` reserves 3.
         public init(
             theme: EditorTheme,
             useThemeBackground: Bool = true,
@@ -62,7 +87,12 @@ extension SourceEditorConfiguration {
             wrapLines: Bool,
             useSystemCursor: Bool = true,
             tabWidth: Int = 4,
-            bracketPairEmphasis: BracketPairEmphasis? = .flash
+            bracketPairEmphasis: BracketPairEmphasis? = .flash,
+            gutterFont: NSFont? = nil,
+            gutterTextColor: NSColor? = nil,
+            gutterSelectedLineTextColor: NSColor? = nil,
+            gutterHighlightsSelectedLineBackground: Bool = true,
+            gutterMinimumDigits: Int? = nil
         ) {
             self.theme = theme
             self.useThemeBackground = useThemeBackground
@@ -77,6 +107,11 @@ extension SourceEditorConfiguration {
             }
             self.tabWidth = tabWidth
             self.bracketPairEmphasis = bracketPairEmphasis
+            self.gutterFont = gutterFont
+            self.gutterTextColor = gutterTextColor
+            self.gutterSelectedLineTextColor = gutterSelectedLineTextColor
+            self.gutterHighlightsSelectedLineBackground = gutterHighlightsSelectedLineBackground
+            self.gutterMinimumDigits = gutterMinimumDigits
         }
 
         @MainActor
@@ -86,7 +121,6 @@ extension SourceEditorConfiguration {
             if oldConfig?.font != font {
                 controller.textView.font = font
                 controller.textView.typingAttributes = controller.attributesFor(nil)
-                controller.gutterView.font = font.rulerFont
                 needsHighlighterInvalidation = true
             }
 
@@ -94,6 +128,8 @@ extension SourceEditorConfiguration {
                 updateControllerNewTheme(controller: controller)
                 needsHighlighterInvalidation = true
             }
+
+            updateGutterIfNeeded(controller: controller, oldConfig: oldConfig)
 
             if oldConfig?.tabWidth != tabWidth {
                 controller.paragraphStyle = controller.generateParagraphStyle()
@@ -135,6 +171,26 @@ extension SourceEditorConfiguration {
             }
         }
 
+        /// Restyles the gutter when anything it draws with differs from `oldConfig` (always on first setup).
+        @MainActor
+        private func updateGutterIfNeeded(controller: TextViewController, oldConfig: Appearance?) {
+            guard let oldConfig else {
+                controller.styleGutterView()
+                return
+            }
+            let changed = oldConfig.font != font
+                || oldConfig.theme != theme
+                || oldConfig.useThemeBackground != useThemeBackground
+                || oldConfig.gutterFont != gutterFont
+                || oldConfig.gutterTextColor != gutterTextColor
+                || oldConfig.gutterSelectedLineTextColor != gutterSelectedLineTextColor
+                || oldConfig.gutterHighlightsSelectedLineBackground != gutterHighlightsSelectedLineBackground
+                || oldConfig.gutterMinimumDigits != gutterMinimumDigits
+            if changed {
+                controller.styleGutterView()
+            }
+        }
+
         private func updateControllerNewTheme(controller: TextViewController) {
             controller.textView.layoutManager.setNeedsLayout()
             controller.textView.textStorage.setAttributes(
@@ -150,21 +206,6 @@ extension SourceEditorConfiguration {
                 theme.background
             } else {
                 .clear
-            }
-
-            controller.gutterView.textColor = theme.text.color.withAlphaComponent(0.35)
-            controller.gutterView.selectedLineTextColor = theme.text.color
-            controller.gutterView.selectedLineColor = if useThemeBackground {
-                theme.lineHighlight
-            } else if controller.systemAppearance == .darkAqua {
-                NSColor.quaternaryLabelColor
-            } else {
-                NSColor.selectedTextBackgroundColor.withSystemEffect(.disabled)
-            }
-            controller.gutterView.backgroundColor = if useThemeBackground {
-                theme.background
-            } else {
-                .windowBackgroundColor
             }
 
             controller.minimapView.setTheme(theme)

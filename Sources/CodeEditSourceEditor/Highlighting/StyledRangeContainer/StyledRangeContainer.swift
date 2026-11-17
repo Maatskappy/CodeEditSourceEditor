@@ -131,6 +131,12 @@ extension StyledRangeContainer: HighlightProviderStateDelegate {
     }
 
     /// Applies a highlight result from a highlight provider to the storage container.
+    ///
+    /// Nested highlights are supported: a highlight strictly contained in an earlier one wins for its own sub-range,
+    /// splitting the enclosing run around it (innermost wins). It inherits the enclosing highlight's capture when it
+    /// has none of its own, and the union of both modifier sets. Two highlights with the same range keep the first one
+    /// (the lower capture index). Partial, non-nested overlaps are skipped.
+    ///
     /// - Parameters:
     ///   - provider: The provider sending the highlights.
     ///   - highlights: The highlights provided. These cannot be outside the range to highlight, must be ordered by
@@ -143,30 +149,72 @@ extension StyledRangeContainer: HighlightProviderStateDelegate {
             assertionFailure("No storage found for the given provider: \(provider)")
             return
         }
-        var runs: [RangeStoreRun<StyleElement>] = []
-        var lastIndex = rangeToHighlight.lowerBound
-
-        for highlight in highlights {
-            if highlight.range.lowerBound > lastIndex {
-                runs.append(.empty(length: highlight.range.lowerBound - lastIndex))
-            } else if highlight.range.lowerBound < lastIndex {
-                continue // Skip! Overlapping
-            }
-            runs.append(
-                RangeStoreRun<StyleElement>(
-                    length: highlight.range.length,
-                    value: StyleElement(capture: highlight.capture, modifiers: highlight.modifiers)
-                )
-            )
-            lastIndex = highlight.range.max
-        }
-
-        if lastIndex < rangeToHighlight.upperBound {
-            runs.append(.empty(length: rangeToHighlight.upperBound - lastIndex))
-        }
-
+        let runs = Self.flattenHighlights(highlights, in: rangeToHighlight)
         storage.set(runs: runs, for: rangeToHighlight.intRange)
         _storage[provider]?.store = storage
         delegate?.styleContainerDidUpdate(in: rangeToHighlight)
+    }
+
+    /// Flattens possibly-nested highlights into a contiguous list of runs covering `rangeToHighlight`.
+    ///
+    /// Runs in O(n log n) for the ordering pass and O(n) for the sweep: every highlight is pushed and popped from the
+    /// enclosing stack at most once.
+    static func flattenHighlights(
+        _ highlights: [HighlightRange],
+        in rangeToHighlight: NSRange
+    ) -> [RangeStoreRun<StyleElement>] {
+        typealias Run = RangeStoreRun<StyleElement>
+        // Order by start, then longest first so an enclosing highlight precedes the ones it contains when they share
+        // a start. The sort is stable, so equal ranges keep provider order and the first still wins a tie.
+        let ordered = highlights.enumerated().sorted { lhs, rhs in
+            if lhs.element.range.location != rhs.element.range.location {
+                return lhs.element.range.location < rhs.element.range.location
+            }
+            if lhs.element.range.length != rhs.element.range.length {
+                return lhs.element.range.length > rhs.element.range.length
+            }
+            return lhs.offset < rhs.offset
+        }
+
+        var runs: [Run] = []
+        runs.reserveCapacity(highlights.count * 2 + 1)
+        var cursor = rangeToHighlight.lowerBound
+        // Enclosing highlights whose tail past `cursor` is still to be emitted, innermost last.
+        var stack: [(range: NSRange, element: StyleElement)] = []
+
+        func emit(_ value: StyleElement?, upTo end: Int) {
+            guard end > cursor else { return }
+            runs.append(Run(length: end - cursor, value: value))
+            cursor = end
+        }
+
+        for (_, highlight) in ordered {
+            let range = highlight.range
+            guard range.length > 0 else { continue }
+
+            // Close every enclosing highlight that ends at or before this one starts.
+            while let top = stack.last, top.range.max <= range.location {
+                emit(top.element, upTo: top.range.max)
+                stack.removeLast()
+            }
+
+            var element = StyleElement(capture: highlight.capture, modifiers: highlight.modifiers)
+            if let top = stack.last {
+                // `top` contains this highlight's start. Only a strictly nested highlight is kept.
+                guard range.max <= top.range.max, range != top.range else { continue }
+                element = top.element.combineHigherPriority(element)
+                emit(top.element, upTo: range.location)
+            } else {
+                guard range.location >= cursor else { continue }
+                emit(nil, upTo: range.location)
+            }
+            stack.append((range, element))
+        }
+
+        while let top = stack.popLast() {
+            emit(top.element, upTo: top.range.max)
+        }
+        emit(nil, upTo: rangeToHighlight.upperBound)
+        return runs
     }
 }

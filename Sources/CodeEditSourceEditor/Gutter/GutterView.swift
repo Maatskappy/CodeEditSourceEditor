@@ -47,7 +47,19 @@ public class GutterView: NSView {
     @Invalidating(.display)
     var font: NSFont = .systemFont(ofSize: 13) {
         didSet {
-            updateFontLineHeight()
+            guard font != oldValue else { return }
+            resetLineNumberWidth()
+        }
+    }
+
+    /// The default number of digits the gutter reserves width for.
+    static let defaultMinimumDigits = 3
+
+    /// The minimum number of digits to reserve width for, so the gutter doesn't widen as the line count grows.
+    var minimumDigits: Int = GutterView.defaultMinimumDigits {
+        didSet {
+            guard minimumDigits != oldValue else { return }
+            resetLineNumberWidth()
         }
     }
 
@@ -87,17 +99,10 @@ public class GutterView: NSView {
     /// The maximum number of digits found for a line number.
     private var maxLineLength: Int = 0
 
-    private var fontLineHeight = 1.0
-
-    private func updateFontLineHeight() {
-        let string = NSAttributedString(string: "0", attributes: [.font: font])
-        let typesetter = CTTypesetterCreateWithAttributedString(string)
-        let ctLine = CTTypesetterCreateLine(typesetter, CFRangeMake(0, 1))
-        var ascent: CGFloat = 0
-        var descent: CGFloat = 0
-        var leading: CGFloat = 0
-        CTLineGetTypographicBounds(ctLine, &ascent, &descent, &leading)
-        fontLineHeight = (ascent + descent + leading)
+    /// Forces the next ``updateWidthIfNeeded()`` to re-measure the line number column.
+    private func resetLineNumberWidth() {
+        maxLineNumberWidth = 0
+        maxLineLength = 0
     }
 
     /// The view that draws the fold decoration in the gutter.
@@ -139,9 +144,11 @@ public class GutterView: NSView {
         delegate: GutterViewDelegate? = nil
     ) {
         self.init(
-            font: configuration.appearance.font,
-            textColor: configuration.appearance.theme.text.color,
-            selectedTextColor: configuration.appearance.theme.selection,
+            font: configuration.appearance.gutterFont ?? configuration.appearance.font.rulerFont,
+            textColor: configuration.appearance.gutterTextColor
+                ?? configuration.appearance.theme.text.color.withAlphaComponent(0.35),
+            selectedTextColor: configuration.appearance.gutterSelectedLineTextColor
+                ?? configuration.appearance.theme.text.color,
             controller: controller,
             delegate: delegate
         )
@@ -191,8 +198,8 @@ public class GutterView: NSView {
             .font: font,
             .foregroundColor: textColor
         ]
-        // Reserve at least 3 digits of space no matter what
-        let lineStorageDigits = max(3, String(textView.layoutManager.lineCount).count)
+        // Reserve at least `minimumDigits` digits of space no matter what
+        let lineStorageDigits = max(minimumDigits, String(textView.layoutManager.lineCount).count)
 
         if maxLineLength < lineStorageDigits {
             // Update the max width
@@ -299,9 +306,8 @@ public class GutterView: NSView {
             let fragment: LineFragment? = linePosition.data.lineFragments.first?.data
             var ascent: CGFloat = 0
             let lineNumberWidth = CTLineGetTypographicBounds(ctLine, &ascent, nil, nil)
-            let fontHeightDifference = ((fragment?.height ?? 0) - fontLineHeight) / 4
 
-            let yPos = linePosition.yPos + ascent + (fragment?.heightDifference ?? 0)/2 + fontHeightDifference
+            let yPos = linePosition.yPos + lineNumberBaselineOffset(fragment: fragment, ascent: ascent)
             // Leading padding + (width - linewidth)
             let xPos = edgeInsets.leading + (maxLineNumberWidth - lineNumberWidth)
 
@@ -312,6 +318,18 @@ public class GutterView: NSView {
             CTLineDraw(ctLine, context)
         }
         context.restoreGState()
+    }
+
+    /// The distance from the top of a text line to the baseline its line number is drawn on.
+    ///
+    /// Line numbers share the first line fragment's baseline, so a gutter font smaller (or larger) than the editor
+    /// font still sits on the same baseline as the text beside it. This mirrors how `LineFragmentRenderer` positions
+    /// text: `height - descent`, offset by half the line-height-multiple padding.
+    func lineNumberBaselineOffset(fragment: LineFragment?, ascent: CGFloat) -> CGFloat {
+        guard let fragment, fragment.height > 0 else {
+            return ascent
+        }
+        return fragment.height - fragment.descent + fragment.heightDifference / 2
     }
 
     override public func setNeedsDisplay(_ invalidRect: NSRect) {

@@ -31,6 +31,38 @@ extension TextViewController {
         scrollView.scrollerStyle = .overlay
     }
 
+    /// Applies the gutter's font, colours and selected-line treatment from ``configuration``. Reads both appearance
+    /// and behavior (read-only editors never fill the selected line), so call it when either changes.
+    package func styleGutterView() {
+        guard let gutterView else { return }
+        let appearance = configuration.appearance
+        gutterView.font = appearance.gutterFont ?? appearance.font.rulerFont
+        gutterView.minimumDigits = appearance.gutterMinimumDigits ?? GutterView.defaultMinimumDigits
+        gutterView.textColor = appearance.gutterTextColor ?? appearance.theme.text.color.withAlphaComponent(0.35)
+        gutterView.backgroundColor = if appearance.useThemeBackground {
+            appearance.theme.background
+        } else {
+            .windowBackgroundColor
+        }
+
+        if configuration.behavior.isEditable {
+            gutterView.selectedLineTextColor = appearance.gutterSelectedLineTextColor ?? appearance.theme.text.color
+            gutterView.highlightSelectedLines = appearance.gutterHighlightsSelectedLineBackground
+            gutterView.selectedLineColor = if appearance.useThemeBackground {
+                appearance.theme.lineHighlight
+            } else if systemAppearance == .darkAqua {
+                NSColor.quaternaryLabelColor
+            } else {
+                NSColor.selectedTextBackgroundColor.withSystemEffect(.disabled)
+            }
+        } else {
+            gutterView.selectedLineTextColor = appearance.gutterSelectedLineTextColor
+            gutterView.highlightSelectedLines = false
+            gutterView.selectedLineColor = .clear
+        }
+        gutterView.updateWidthIfNeeded()
+    }
+
     package func styleMinimapView() {
         minimapView.postsFrameChangedNotifications = true
     }
