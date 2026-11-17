@@ -287,6 +287,9 @@ public class TextViewController: NSViewController {
     public func setText(_ text: String) {
         self.textView.setText(text)
         self.setUpHighlighter()
+        // The new highlighter would otherwise wait for a frame or scroll change, which never comes when the text
+        // fits inside the current frame (small files, or reloading the same file).
+        self.highlighter?.highlightVisibleText()
         self.gutterView.setNeedsDisplay(self.gutterView.frame)
     }
 

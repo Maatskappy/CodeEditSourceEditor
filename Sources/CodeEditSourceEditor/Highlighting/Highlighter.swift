@@ -128,6 +128,15 @@ class Highlighter: NSObject {
         highlightProviders.forEach { $0.invalidate(set) }
     }
 
+    /// Recomputes the visible range and highlights whatever in it isn't highlighted yet.
+    ///
+    /// A new highlighter only queries when the visible range changes (a frame, bounds or edit notification). After
+    /// the text is replaced wholesale, text that fits inside the existing frame triggers none of those, so call this
+    /// to run the first query.
+    public func highlightVisibleText() {
+        visibleRangeProvider.visibleTextChanged()
+    }
+
     /// Sets the language and causes a re-highlight of the entire text.
     /// - Parameter language: The language to update to.
     public func setLanguage(language: CodeLanguage) {
