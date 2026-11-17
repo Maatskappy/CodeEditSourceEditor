@@ -88,34 +88,35 @@ extension TreeSitterClient {
         includedRange: NSRange
     ) -> [HighlightRange] {
         guard let readCallback else { return [] }
-        var ranges: [NSRange: Int] = [:]
-        return cursor
+
+        // Two captures on the same range resolve to the one with the lowest capture index (its name appears first
+        // in the query). Resolve that fully here, so exactly one highlight per range reaches the style container
+        // whatever order tree-sitter yields the captures in.
+        var winners: [NSRange: (index: Int, capture: CaptureName)] = [:]
+        var order: [NSRange] = []
+        for capture in cursor
             .resolve(with: .init(textProvider: readCallback)) // Resolve our cursor against the query
-            .flatMap { $0.captures }
-            .reversed() // SwiftTreeSitter returns captures in the reverse order of what we need to filter with.
-            .compactMap { capture in
-                let range = capture.range
-                let index = capture.index
-
-                // Lower indexed captures are favored over higher, this is why we reverse it above
-                if let existingLevel = ranges[range], existingLevel <= index {
-                    return nil
+            .flatMap({ $0.captures }) {
+            guard let captureName = CaptureName.fromString(capture.name) else { continue }
+            let range = capture.range
+            if let existing = winners[range] {
+                if capture.index < existing.index {
+                    winners[range] = (capture.index, captureName)
                 }
-
-                guard let captureName = CaptureName.fromString(capture.name) else {
-                    return nil
-                }
-
-                // Update the filter level to the current index since it's lower and a 'valid' capture
-                ranges[range] = index
-
-                // Validate range and capture name
-                let intersectionRange = range.intersection(includedRange) ?? .zero
-                guard intersectionRange.length > 0 else {
-                    return nil
-                }
-
-                return HighlightRange(range: intersectionRange, capture: captureName)
+            } else {
+                winners[range] = (capture.index, captureName)
+                order.append(range)
             }
+        }
+
+        return order.compactMap { range in
+            guard let winner = winners[range] else { return nil }
+            // Validate range
+            let intersectionRange = range.intersection(includedRange) ?? .zero
+            guard intersectionRange.length > 0 else {
+                return nil
+            }
+            return HighlightRange(range: intersectionRange, capture: winner.capture)
+        }
     }
 }
